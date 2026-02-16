@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitorização de Clientes</title>
+  <link rel="stylesheet" href="login.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Monitorização dos Clientes</h1>
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+  </header>
+  <div id="clientes"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        alert("Token não encontrado. Por favor, faça login.");
+        return;
+      }
+
+      fetch("http://localhost:3000/api/monitorizacao/clientes", {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Erro ao buscar dados: " + res.status);
+        return res.json();
+      })
+      .then(clientes => {
+        const container = document.getElementById("clientes");
+        clientes.forEach(cliente => {
+          const card = document.createElement("div");
+          card.className = "cliente-card";
+          card.innerHTML = `
+            <h3>${cliente.nome}</h3>
+            <p><strong>Email:</strong> ${cliente.email}</p>
+            <p><strong>Produção:</strong> ${cliente.producao} kWh</p>
+            <p><strong>Consumo:</strong> ${cliente.consumo} kWh</p>
+            <p><strong>Créditos:</strong> ${cliente.creditos}</p>
+            <button onclick="enviarEmail('${cliente.clienteId}')">📩 Enviar Email</button>
+            <button onclick="mostrarGrafico('${cliente.clienteId}')">📊 Ver Histórico</button>
+            <canvas id="grafico-${cliente.clienteId}" width="400" height="200"></canvas>
+          `;
+          container.appendChild(card);
+        });
+      })
+      .catch(err => {
+        console.error("Erro ao carregar clientes:", err);
+      });
+    });
+
+    function enviarEmail(clienteId) {
+      const confirmar = confirm("Queres mesmo enviar o resumo mensal por e-mail?");
+      if (!confirmar) return;
+
+      fetch(`http://localhost:3000/api/leituras/enviar-email/${clienteId}`, {
+        method: "POST"
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message || "Email enviado.");
+      })
+      .catch(err => {
+        alert("Erro ao enviar e-mail.");
+        console.error(err);
+      });
+    }
+
+    function mostrarGrafico(clienteId) {
+      const canvas = document.getElementById(`grafico-${clienteId}`);
+      canvas.style.display = "block";
+
+      fetch(`http://localhost:3000/api/leituras/historico/${clienteId}`)
+        .then(res => res.json())
+        .then(data => {
+          const labels = data.map(item => item.mes);
+          const producao = data.map(item => item.producao);
+          const consumo = data.map(item => item.consumo);
+          const credito = data.map(item => item.credito);
+
+          new Chart(canvas, {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Produção (kWh)',
+                  data: producao,
+                  backgroundColor: 'rgba(46, 204, 113, 0.7)'
+                },
+                {
+                  label: 'Consumo (kWh)',
+                  data: consumo,
+                  backgroundColor: 'rgba(231, 76, 60, 0.7)'
+                },
+                {
+                  label: 'Créditos (kWh)',
+                  data: credito,
+                  backgroundColor: 'rgba(52, 152, 219, 0.7)'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: 'Histórico Mensal de Energia' }
+              }
+            }
+          });
+        })
+        .catch(err => {
+          console.error("Erro ao carregar gráfico:", err);
+        });
+    }
+
+    function logout() {
+      sessionStorage.removeItem("token");
+      alert("Sessão terminada com sucesso.");
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

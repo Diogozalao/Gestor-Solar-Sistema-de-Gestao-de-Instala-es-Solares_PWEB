@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registo de Instalação</title>
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <header>
+    <h2>Registar Instalação de Painéis Solares</h2>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </header>
+
+  <div class="container-registo-producao">
+    <form id="instalacaoForm">
+      <input type="text" id="nomeCliente" placeholder="Nome do Cliente" required />
+      <input type="text" id="localizacao" placeholder="Localização" required />
+      <input type="text" id="dadosTecnicos" placeholder="Dados Técnicos" required />
+      <button type="submit">Registar</button>
+    </form>
+  </div>
+
+  <script>
+    function logout() {
+      sessionStorage.removeItem("token");
+      alert("Sessão terminada com sucesso.");
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="registo_instalacao.js"></script>
+</body>
+</html>
